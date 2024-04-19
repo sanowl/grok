@@ -18,7 +18,7 @@ import functools
 import logging
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import field, dataclass
 from typing import Any, Callable, NamedTuple, Optional, Tuple
 
 import haiku as hk
@@ -264,9 +264,9 @@ class InferenceRunner:
     runner: Any
     load: str
     tokenizer_path: str = "/tmp/xai_data/tokenizer.model"
-    local_mesh_config: Tuple[int, int] = (1, 1)
-    between_hosts_config: Tuple[int, int] = (1, 1)
-    pad_sizes: tuple[int] = (1024,)
+    local_mesh_config: Tuple[int, int] = field(default_factory=lambda: (1, 1))
+    between_hosts_config: Tuple[int, int] = field(default_factory=lambda: (1, 1))
+    pad_sizes: tuple[int] = field(default_factory=lambda: (1024,))
 
     def get_pad_bucket(self, size):
         i = bisect.bisect_left(self.pad_sizes, size)
