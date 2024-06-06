@@ -13,16 +13,18 @@
 # limitations under the License.
 
 import logging
+from typing import Any
 
 from model import LanguageModelConfig, TransformerConfig, QuantizedWeight8bit as QW8Bit
 from runners import InferenceRunner, ModelRunner, sample_from_model
 
-
 CKPT_PATH = "./checkpoints/"
+TOKENIZER_PATH = "./tokenizer.model"
 
 
-def main():
-    grok_1_model = LanguageModelConfig(
+def configure_model() -> LanguageModelConfig:
+    """Configure and return the language model configuration."""
+    return LanguageModelConfig(
         vocab_size=128 * 1024,
         pad_token=0,
         eos_token=2,
@@ -47,26 +49,44 @@ def main():
             model_axis="model",
         ),
     )
-    inference_runner = InferenceRunner(
+
+
+def setup_inference_runner(model_config: LanguageModelConfig) -> InferenceRunner:
+    """Setup and return the inference runner."""
+    return InferenceRunner(
         pad_sizes=(1024,),
         runner=ModelRunner(
-            model=grok_1_model,
+            model=model_config,
             bs_per_device=0.125,
             checkpoint_path=CKPT_PATH,
         ),
         name="local",
         load=CKPT_PATH,
-        tokenizer_path="./tokenizer.model",
+        tokenizer_path=TOKENIZER_PATH,
         local_mesh_config=(1, 8),
         between_hosts_config=(1, 1),
     )
-    inference_runner.initialize()
-    gen = inference_runner.run()
 
-    inp = "The answer to life the universe and everything is of course"
-    print(f"Output for prompt: {inp}", sample_from_model(gen, inp, max_len=100, temperature=0.01))
+
+def generate_text(inference_runner: InferenceRunner, prompt: str, max_len: int = 100, temperature: float = 0.01) -> str:
+    """Generate text using the model."""
+    return sample_from_model(inference_runner.run(), prompt, max_len=max_len, temperature=temperature)
+
+
+def main() -> None:
+    """Main function to initialize the model and generate text."""
+    logging.basicConfig(level=logging.INFO)
+    try:
+        model_config = configure_model()
+        inference_runner = setup_inference_runner(model_config)
+        inference_runner.initialize()
+        
+        prompt = "The answer to life the universe and everything is of course"
+        output = generate_text(inference_runner, prompt)
+        print(f"Output for prompt: {prompt}\n{output}")
+    except Exception as e:
+        logging.error("An error occurred during model initialization or inference.", exc_info=True)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()
