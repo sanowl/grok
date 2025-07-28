@@ -31,6 +31,7 @@ import numpy as np
 from jax.experimental import multihost_utils
 
 from model import QuantizedWeight8bit
+import fickling
 
 logger = logging.getLogger(__name__)
 rank_logger = logging.getLogger("rank")
@@ -71,7 +72,7 @@ def copy_from_shm(file: str):
 def fast_unpickle(path: str) -> Any:
     with copy_to_shm(path) as tmp_path:
         with open(tmp_path, "rb") as f:
-            return pickle.load(f)
+            return fickling.load(f)
 
 
 def fast_pickle(obj: Any, path: str) -> None:
